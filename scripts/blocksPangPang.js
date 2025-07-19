@@ -25,10 +25,29 @@ const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next');
 const nextCtx = nextCanvas.getContext('2d');
 let score = 0;
+let flashingLines = [];
+let flashFrame = 0;
+let flashInterval = null;
 
 function updateScore(delta) {
   score += delta;
   document.getElementById('score').innerText = `점수: ${score}`;
+}
+
+function flashLines() {
+  flashFrame++;
+  draw();
+  if (flashFrame >= 4) { // 4번 깜빡이면 삭제
+    // 진짜 삭제
+    flashingLines.forEach(y => {
+      board.splice(y,1);
+      board.unshift(Array(COLS).fill(0));
+    });
+    flashingLines = [];
+    clearInterval(flashInterval);
+    flashInterval = null;
+    draw();
+  }
 }
 
 function randomShape() {
@@ -75,21 +94,25 @@ function rotate(shape) {
   return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
 }
 function clearLines() {
-  let lines = 0;
+  let lines = [];
   for (let y=ROWS-1; y>=0; y--) {
     if (board[y].every(v=>v)) {
-      board.splice(y,1);
-      board.unshift(Array(COLS).fill(0));
-      lines++;
-      y++; // Check same line again (since lines move down)
+      lines.push(y);
     }
   }
-  // 점수 계산!
-  if (lines > 0) {
-    // [1줄:100, 2줄:300, 3줄:500, 4줄:800]
+  if (lines.length > 0) {
+    // 애니메이션 준비
+    flashingLines = lines;
+    flashFrame = 0;
+    if (!flashInterval) {
+      flashInterval = setInterval(flashLines, 60); // 60ms마다 플래시
+    }
+    // 점수 미리 지급
     const points = [0, 100, 300, 500, 800];
-    updateScore(points[lines] || lines * 200); // 혹시 5줄 이상이면 임의로 200씩
+    updateScore(points[lines.length] || lines.length * 200);
+    return true; // 라인 삭제 대기중임
   }
+  return false;
 }
 function drawBlock(ctx, x, y, color) {
   ctx.fillStyle = color;
@@ -97,17 +120,26 @@ function drawBlock(ctx, x, y, color) {
   ctx.strokeStyle = '#333';
   ctx.strokeRect(x*BLOCK, y*BLOCK, BLOCK, BLOCK);
 }
+
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   // draw board
-  for(let r=0;r<ROWS;r++)
-    for(let c=0;c<COLS;c++)
-      if(board[r][c]) drawBlock(ctx, c, r, COLORS[board[r][c]-1]);
+  for(let r=0;r<ROWS;r++) {
+    for(let c=0;c<COLS;c++) {
+      let color = board[r][c] ? COLORS[board[r][c]-1] : null;
+      // 반짝이 효과
+      if (flashingLines.includes(r)) {
+        color = (flashFrame%2===0) ? '#fff' : COLORS[board[r][c]-1];
+      }
+      if(color) drawBlock(ctx, c, r, color);
+    }
+  }
   // draw current
-  for(let r=0;r<curr.length;r++)
-    for(let c=0;c<curr[r].length;c++)
-      if(curr[r][c]) drawBlock(ctx, currX+c, currY+r, currShape.color);
-
+  if (!flashingLines.length) {
+    for(let r=0;r<curr.length;r++)
+      for(let c=0;c<curr[r].length;c++)
+        if(curr[r][c]) drawBlock(ctx, currX+c, currY+r, currShape.color);
+  }
   // draw next
   nextCtx.clearRect(0,0,nextCanvas.width,nextCanvas.height);
   let ns = nextShape.shape;
@@ -115,14 +147,16 @@ function draw() {
     for(let c=0;c<ns[r].length;c++)
       if(ns[r][c]) drawBlock(nextCtx, c+1, r+1, nextShape.color);
 }
+
 function tick() {
-  if (!running) return;
+  if (!running || flashingLines.length) return;
   if (!collide(curr, currX, currY+1)) {
     currY++;
   } else {
     merge();
-    clearLines();
-    spawn();
+    if (!clearLines()) {
+      spawn();
+    }
   }
   draw();
 }
