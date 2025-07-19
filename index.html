@@ -1,12 +1,22 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>내 사이트</title>
+  <meta charset="UTF-8" />
+  <title>Simple Block Pang Pang</title>
+  <link rel="stylesheet" href="../style.css" />
 </head>
 <body>
-  <h1>환영합니다!</h1>
-  <p>이곳에 수익 링크 삽입 가능</p>
+  <h1>Simple Tetris</h1>
+  <div id="game">
+    <canvas id="board" width="200" height="400"></canvas>
+    <div id="next-block">
+      <h3>Next</h3>
+      <canvas id="next" width="80" height="80"></canvas>
+    </div>
+  </div>
+  <div>
+    <button onclick="restart()">Restart</button>
+  </div>
+  <script src="../tetris.js"></script>
 </body>
 </html>
