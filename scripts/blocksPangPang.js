@@ -24,16 +24,25 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next');
 const nextCtx = nextCanvas.getContext('2d');
+let score = 0;
+
+function updateScore(delta) {
+  score += delta;
+  document.getElementById('score').innerText = `점수: ${score}`;
+}
 
 function randomShape() {
   const i = Math.floor(Math.random() * SHAPES.length);
   return {shape: SHAPES[i], color: COLORS[i], index: i};
 }
+
 function restart() {
   board = Array.from({length: ROWS},()=>Array(COLS).fill(0));
   running = true;
   currShape = randomShape();
   nextShape = randomShape();
+  score = 0;
+  updateScore(0);
   spawn();
   draw();
 }
@@ -66,12 +75,20 @@ function rotate(shape) {
   return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
 }
 function clearLines() {
-  for (let y=ROWS-1;y>=0;y--) {
+  let lines = 0;
+  for (let y=ROWS-1; y>=0; y--) {
     if (board[y].every(v=>v)) {
       board.splice(y,1);
       board.unshift(Array(COLS).fill(0));
-      y++;
+      lines++;
+      y++; // Check same line again (since lines move down)
     }
+  }
+  // 점수 계산!
+  if (lines > 0) {
+    // [1줄:100, 2줄:300, 3줄:500, 4줄:800]
+    const points = [0, 100, 300, 500, 800];
+    updateScore(points[lines] || lines * 200); // 혹시 5줄 이상이면 임의로 200씩
   }
 }
 function drawBlock(ctx, x, y, color) {
