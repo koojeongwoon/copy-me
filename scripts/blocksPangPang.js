@@ -51,7 +51,6 @@ function restart() {
     clearInterval(flashInterval);
     flashInterval = null;
   }
-  currIndex = randomIndex();
   nextIndex = randomIndex();
   spawn();
   draw();
@@ -59,10 +58,10 @@ function restart() {
 
 // 새 블록 등장
 function spawn() {
+  currIndex = nextIndex;
   curr = SHAPES[currIndex].map(row => row.slice());
   currX = Math.floor((COLS-curr[0].length)/2);
   currY = 0;
-  currIndex = nextIndex;
   nextIndex = randomIndex();
 
   // 블록이 처음부터 충돌하면 게임오버
@@ -131,6 +130,7 @@ function flashLines() {
     clearInterval(flashInterval);
     flashInterval = null;
     draw();
+    spawn(); // ★여기서 새로운 블록 등장
   }
 }
 
@@ -178,19 +178,23 @@ function draw() {
 
 // 한 프레임 진행
 function tick() {
-  // 반짝이 중에는 멈춤
   if (!running || flashingLines.length) return;
 
   if (!collide(curr, currX, currY+1)) {
     currY++;
+    draw(); // 이동만 있을 때는 즉시 그리기
   } else {
     merge();
     if (!clearLines()) {
       spawn();
+      draw(); // 라인 삭제가 없으면 즉시 새 블록 그리기
     }
+    // clearLines가 true(즉, 줄 삭제 플래시 시작)이면,
+    // flashLines가 알아서 draw/spawn 호출 -> 여기서 draw() 호출하지 않음!
   }
-  draw();
 }
+
+
 
 // 키 입력 핸들링
 document.addEventListener('keydown', e=>{
