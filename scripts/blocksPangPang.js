@@ -57,20 +57,20 @@ function restart() {
 }
 
 // 새 블록 등장
-function spawn() {
-  currIndex = nextIndex;
-  curr = SHAPES[currIndex].map(row => row.slice());
-  currX = Math.floor((COLS-curr[0].length)/2);
-  currY = 0;
-  nextIndex = randomIndex();
+// function spawn() {
+//   currIndex = nextIndex;
+//   curr = SHAPES[currIndex].map(row => row.slice());
+//   currX = Math.floor((COLS-curr[0].length)/2);
+//   currY = 0;
+//   nextIndex = randomIndex();
 
-  // 블록이 처음부터 충돌하면 게임오버
-  if (collide(curr, currX, currY)) {
-    running = false;
-    draw();
-    setTimeout(()=>alert('Game Over!'), 10);
-  }
-}
+//   // 블록이 처음부터 충돌하면 게임오버
+//   if (collide(curr, currX, currY)) {
+//     running = false;
+//     draw();
+//     setTimeout(()=>alert('Game Over!'), 10);
+//   }
+// }
 
 // 충돌 체크
 function collide(shape,x,y) {
@@ -94,17 +94,31 @@ function merge() {
 function rotate(shape) {
   return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
 }
+function tick() {
+  if (!running || flashingLines.length) return;
 
-// 줄 삭제 + 반짝이 효과
+  if (!collide(curr, currX, currY+1)) {
+    currY++;
+    draw();
+  } else {
+    merge();
+    if (!clearLines()) {
+      spawn();
+      draw();
+    }
+    // clearLines가 true면 flashLines에서만 spawn/draw!
+  }
+}
+
 function clearLines() {
   let lines = [];
   for (let y=ROWS-1; y>=0; y--) {
     if (board[y].every(v=>v)) lines.push(y);
   }
   if (lines.length > 0) {
-    // 큰 인덱스부터(여러줄 splice 시 안전)
     flashingLines = lines.sort((a,b)=>b-a);
     flashFrame = 0;
+    spawnPending = true;
     if (!flashInterval) {
       flashInterval = setInterval(flashLines, 60);
     }
@@ -116,12 +130,10 @@ function clearLines() {
   return false;
 }
 
-// 줄 반짝이 애니메이션
 function flashLines() {
   flashFrame++;
   draw();
   if (flashFrame >= 4) {
-    // 큰 줄 인덱스부터 삭제
     flashingLines.forEach(y => {
       board.splice(y,1);
       board.unshift(Array(COLS).fill(0));
@@ -130,9 +142,29 @@ function flashLines() {
     clearInterval(flashInterval);
     flashInterval = null;
     draw();
-    spawn(); // ★여기서 새로운 블록 등장
+    if (spawnPending) {
+      spawnPending = false;
+      spawn();
+      draw();
+    }
   }
 }
+
+function spawn() {
+  currIndex = nextIndex;
+  curr = SHAPES[currIndex].map(row => row.slice());
+  currX = Math.floor((COLS-curr[0].length)/2);
+  currY = 0;
+  nextIndex = randomIndex();
+
+  // 블록이 처음부터 충돌하면 게임오버
+  if (collide(curr, currX, currY)) {
+    running = false;
+    draw();
+    setTimeout(()=>alert('Game Over!'), 10);
+  }
+}
+
 
 // 블록(칸) 그리기
 function drawBlock(ctx, x, y, color) {
@@ -177,22 +209,22 @@ function draw() {
 }
 
 // 한 프레임 진행
-function tick() {
-  if (!running || flashingLines.length) return;
+// function tick() {
+//   if (!running || flashingLines.length) return;
 
-  if (!collide(curr, currX, currY+1)) {
-    currY++;
-    draw(); // 이동만 있을 때는 즉시 그리기
-  } else {
-    merge();
-    if (!clearLines()) {
-      spawn();
-      draw(); // 라인 삭제가 없으면 즉시 새 블록 그리기
-    }
-    // clearLines가 true(즉, 줄 삭제 플래시 시작)이면,
-    // flashLines가 알아서 draw/spawn 호출 -> 여기서 draw() 호출하지 않음!
-  }
-}
+//   if (!collide(curr, currX, currY+1)) {
+//     currY++;
+//     draw(); // 이동만 있을 때는 즉시 그리기
+//   } else {
+//     merge();
+//     if (!clearLines()) {
+//       spawn();
+//       draw(); // 라인 삭제가 없으면 즉시 새 블록 그리기
+//     }
+//     // clearLines가 true(즉, 줄 삭제 플래시 시작)이면,
+//     // flashLines가 알아서 draw/spawn 호출 -> 여기서 draw() 호출하지 않음!
+//   }
+// }
 
 
 
